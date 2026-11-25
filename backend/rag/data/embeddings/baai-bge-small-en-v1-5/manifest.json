@@ -1,0 +1,16 @@
+{
+  "model_id": "BAAI/bge-small-en-v1.5",
+  "backend": "sentence-transformers",
+  "is_standin": false,
+  "dimension": 384,
+  "chunk_count": 2074,
+  "query_prefix": "Represent this sentence for searching relevant passages: ",
+  "passage_prefix": "",
+  "chunks_file": "rag\\data\\approved\\canonical_chunks.csv",
+  "chunks_sha256": "75d0da573bb17fccf2daa1440ef3843b50fabd29a608f8e0d388ecc5d59fa08e",
+  "seconds": 227.3,
+  "created_utc": "2026-11-14T09:18:40+00:00",
+  "python": "3.12.10",
+  "numpy": "2.5.4",
+  "sentence_transformers": "6.2.0"
+}

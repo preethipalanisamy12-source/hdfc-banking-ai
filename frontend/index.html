@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HDFC Bank | Digital Banking</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast" role="status"></div>
+
+    <!-- LOGIN PAGE -->
+    <main id="loginView" class="login-shell">
+
+        <section class="login-brand">
+
+            <div class="brand-lockup">
+                <span class="brand-mark">H</span>
+                <span>HDFC <b>BANK</b></span>
+            </div>
+
+            <div class="brand-copy">
+                <p class="eyebrow">DIGITAL BANKING DEMO</p>
+
+                <h1>
+                    Banking made<br>
+                    <span>simpler.</span>
+                </h1>
+
+                <p>
+                    Secure access to your accounts, transactions
+                    and personal banking assistant.
+                </p>
+            </div>
+
+            <div class="login-foot">
+                Demo environment · Do not use real banking credentials
+            </div>
+
+        </section>
+
+        <section class="login-panel">
+
+            <form id="loginForm" class="login-card">
+
+                <div class="brand-lockup mobile-brand">
+                    <span class="brand-mark">H</span>
+                    <span>HDFC <b>BANK</b></span>
+                </div>
+
+                <p class="eyebrow">WELCOME BACK</p>
+
+                <h2>Sign in to your account</h2>
+
+                <p class="muted">
+                    Enter your registered demo credentials to continue.
+                </p>
+
+                <label for="email">Email address</label>
+
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    autocomplete="username"
+                    required
+                >
+
+                <label for="password">Password</label>
+
+                <div class="password-wrap">
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        class="text-button"
+                    >
+                        Show
+                    </button>
+
+                </div>
+
+                <button
+                    class="primary-button full-button"
+                    type="submit"
+                    id="loginButton"
+                >
+                    Sign in <span>→</span>
+                </button>
+
+                <p id="loginError" class="error-text" aria-live="polite"></p>
+
+                <p class="security-note">
+                    <span>●</span>
+                    Protected demo sign-in · Session secured by backend
+                </p>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <!-- APPLICATION DASHBOARD -->
+    <div id="appView" class="app-shell hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+
+            <div class="brand-lockup side-brand">
+                <span class="brand-mark">H</span>
+                <span>HDFC <b>BANK</b></span>
+            </div>
+
+            <div class="side-label">WORKSPACE</div>
+
+            <nav id="sideNav" class="side-nav"></nav>
+
+            <div class="sidebar-bottom">
+
+                <div class="demo-tag">
+                    <span class="live-dot"></span>
+                    Demo environment
+                </div>
+
+                <button id="logoutButton" class="logout-button">
+                    <span>↪</span> Sign out
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- MAIN CONTENT -->
+        <section class="main-area">
+
+            <header class="topbar">
+
+                <button
+                    id="mobileMenu"
+                    class="mobile-menu"
+                    aria-label="Open menu"
+                >
+                    ☰
+                </button>
+
+                <div>
+                    <p class="top-kicker">HDFC BANKING PORTAL</p>
+                    <div class="top-title" id="pageTitle">
+                        Overview
+                    </div>
+                </div>
+
+                <div class="top-user">
+
+                    <div class="avatar" id="topAvatar">U</div>
+
+                    <div>
+                        <strong id="topUserName">User</strong>
+                        <small id="topUserRole">Customer</small>
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- DYNAMIC DASHBOARD CONTENT -->
+            <div class="page-content">
+
+                <!-- Customer dashboard -->
+                <section
+                    id="customerPage"
+                    class="page hidden"
+                ></section>
+
+                <!-- Admin dashboard -->
+                <section
+                    id="adminPage"
+                    class="page hidden"
+                ></section>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <!-- FLOATING CHATBOT BUTTON -->
+    <button
+        id="chatToggle"
+        class="chat-toggle hidden"
+        aria-label="Open banking assistant"
+    >
+        <span>✦</span>
+    </button>
+
+
+    <!-- CHATBOT PANEL -->
+    <section
+        id="chatPanel"
+        class="chat-panel hidden"
+        aria-label="Banking assistant"
+    >
+
+        <div class="chat-head">
+
+            <div class="chat-orb">✦</div>
+
+            <div>
+                <strong>HDFC Banking Assistant</strong>
+                <small>
+                    <span class="live-dot"></span>
+                    Demo assistant interface
+                </small>
+            </div>
+
+            <button id="chatClose" aria-label="Close chat">
+                ×
+            </button>
+
+        </div>
+
+
+        <div id="chatMessages" class="chat-messages">
+
+            <div class="bot-message">
+                Hello! I'm your HDFC Banking Assistant. How can I help you today?
+            </div>
+
+        </div>
+
+
+        <form id="chatForm" class="chat-input-row">
+
+            <input
+                id="chatInput"
+                placeholder="Ask a banking question..."
+                autocomplete="off"
+                maxlength="500"
+                required
+            >
+
+            <button type="submit" aria-label="Send message">
+                ↑
+            </button>
+
+        </form>
+
+        <div class="chat-footnote">
+            Demo assistant · Do not share passwords or OTPs
+        </div>
+
+    </section>
+
+
+    <!-- JAVASCRIPT -->
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,449 @@
+{
+  "model_id": "BAAI/bge-small-en-v1.5",
+  "standin": false,
+  "dimension": 384,
+  "keyword_backend": "bm25",
+  "store": "file",
+  "corpus_chunks": 2074,
+  "thresholds": {
+    "min_cosine": 0.73,
+    "min_coverage": 0.0
+  },
+  "date": "2026-11-11",
+  "n_dev": 42,
+  "n_test": 41,
+  "retrieval_test": {
+    "keyword": {
+      "n": 29,
+      "recall@1": 0.517,
+      "recall@1_ci95": [
+        0.344,
+        0.686
+      ],
+      "recall@3": 0.552,
+      "recall@3_ci95": [
+        0.375,
+        0.716
+      ],
+      "recall@5": 0.552,
+      "recall@5_ci95": [
+        0.375,
+        0.716
+      ],
+      "mrr": 0.535
+    },
+    "vector": {
+      "n": 29,
+      "recall@1": 0.379,
+      "recall@1_ci95": [
+        0.227,
+        0.56
+      ],
+      "recall@3": 0.552,
+      "recall@3_ci95": [
+        0.375,
+        0.716
+      ],
+      "recall@5": 0.621,
+      "recall@5_ci95": [
+        0.44,
+        0.773
+      ],
+      "mrr": 0.486
+    },
+    "hybrid": {
+      "n": 29,
+      "recall@1": 0.448,
+      "recall@1_ci95": [
+        0.284,
+        0.625
+      ],
+      "recall@3": 0.517,
+      "recall@3_ci95": [
+        0.344,
+        0.686
+      ],
+      "recall@5": 0.552,
+      "recall@5_ci95": [
+        0.375,
+        0.716
+      ],
+      "mrr": 0.503
+    }
+  },
+  "retrieval_all": {
+    "keyword": {
+      "n": 59,
+      "recall@1": 0.576,
+      "recall@1_ci95": [
+        0.449,
+        0.694
+      ],
+      "recall@3": 0.61,
+      "recall@3_ci95": [
+        0.483,
+        0.724
+      ],
+      "recall@5": 0.627,
+      "recall@5_ci95": [
+        0.5,
+        0.739
+      ],
+      "mrr": 0.604
+    },
+    "vector": {
+      "n": 59,
+      "recall@1": 0.508,
+      "recall@1_ci95": [
+        0.384,
+        0.632
+      ],
+      "recall@3": 0.644,
+      "recall@3_ci95": [
+        0.517,
+        0.754
+      ],
+      "recall@5": 0.695,
+      "recall@5_ci95": [
+        0.569,
+        0.797
+      ],
+      "mrr": 0.59
+    },
+    "hybrid": {
+      "n": 59,
+      "recall@1": 0.525,
+      "recall@1_ci95": [
+        0.4,
+        0.647
+      ],
+      "recall@3": 0.627,
+      "recall@3_ci95": [
+        0.5,
+        0.739
+      ],
+      "recall@5": 0.661,
+      "recall@5_ci95": [
+        0.534,
+        0.769
+      ],
+      "mrr": 0.587
+    }
+  },
+  "gate_test": {
+    "answerable_pass_rate": 0.931,
+    "false_abstain_rate": 0.069,
+    "absent_abstain_rate": 0.917,
+    "answerable_correct_and_passed_at5": 0.517,
+    "absent_abstain_rate_excl_personal_data": 1.0,
+    "absent_abstain_ci95": [
+      0.646,
+      0.985
+    ],
+    "absent_abstain_by_kind": {
+      "fake_product": "1/1",
+      "near_topic": "4/4",
+      "off_topic": "5/5",
+      "personal_data": "1/2"
+    },
+    "hybrid_recall@5_by_style": {
+      "kw": "4/10",
+      "para": "12/19"
+    }
+  },
+  "gate_dev": {
+    "answerable_pass_rate": 0.833,
+    "false_abstain_rate": 0.167,
+    "absent_abstain_rate": 1.0,
+    "answerable_correct_and_passed_at5": 0.733,
+    "absent_abstain_rate_excl_personal_data": 1.0,
+    "absent_abstain_ci95": [
+      0.757,
+      1.0
+    ],
+    "absent_abstain_by_kind": {
+      "fake_product": "1/1",
+      "near_topic": "7/7",
+      "off_topic": "4/4"
+    },
+    "hybrid_recall@5_by_style": {
+      "kw": "12/17",
+      "para": "11/13"
+    }
+  },
+  "failures_answerable_missed_at5": [
+    {
+      "id": "Q005",
+      "question": "What document confirms that my loan has been approved?",
+      "correct": [
+        "DOC-00250"
+      ],
+      "got_top3": [
+        "DOC-02292",
+        "DOC-02486",
+        "DOC-00956"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q015",
+      "question": "Do I need an account with the bank to buy a Giftplus card?",
+      "correct": [
+        "DOC-01282"
+      ],
+      "got_top3": [
+        "DOC-01274",
+        "DOC-01273",
+        "DOC-01385"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q017",
+      "question": "Can I divide one fixed deposit into several smaller deposits?",
+      "correct": [
+        "DOC-00958"
+      ],
+      "got_top3": [
+        "DOC-01900",
+        "DOC-01889",
+        "DOC-01897"
+      ],
+      "rank": 22
+    },
+    {
+      "id": "Q018",
+      "question": "How do I follow the daily NAV of my policy fund?",
+      "correct": [
+        "DOC-02648"
+      ],
+      "got_top3": [
+        "DOC-00462",
+        "DOC-02560",
+        "DOC-02160"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q019",
+      "question": "Can I set up a standing instruction for postpaid bill payments too?",
+      "correct": [
+        "DOC-01506"
+      ],
+      "got_top3": [
+        "DOC-01493",
+        "DOC-01495",
+        "DOC-01491"
+      ],
+      "rank": 8
+    },
+    {
+      "id": "Q020",
+      "question": "Where can I use my EasyShop International Debit Card?",
+      "correct": [
+        "DOC-01221"
+      ],
+      "got_top3": [
+        "DOC-01206",
+        "DOC-01213",
+        "DOC-01229"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q027",
+      "question": "Can I take money out of my recurring deposit before maturity?",
+      "correct": [
+        "DOC-01871",
+        "DOC-01923"
+      ],
+      "got_top3": [
+        "DOC-01856",
+        "DOC-01863",
+        "DOC-00021"
+      ],
+      "rank": 6
+    },
+    {
+      "id": "Q029",
+      "question": "What is a balance transfer home loan?",
+      "correct": [
+        "DOC-02241"
+      ],
+      "got_top3": [
+        "DOC-01002",
+        "DOC-00956",
+        "DOC-02245"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q033",
+      "question": "Am I eligible for an education loan to study in India?",
+      "correct": [
+        "DOC-02400"
+      ],
+      "got_top3": [
+        "DOC-02437",
+        "DOC-00319",
+        "DOC-00234"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q044",
+      "question": "What happens if I miss six Dream Deposit instalments in a row?",
+      "correct": [
+        "DOC-01920",
+        "DOC-01922"
+      ],
+      "got_top3": [
+        "DOC-01919",
+        "DOC-01917",
+        "DOC-01918"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q048",
+      "question": "When does my Accidental Protection Plan Hospital Cash policy begin?",
+      "correct": [
+        "DOC-02702"
+      ],
+      "got_top3": [
+        "DOC-02697",
+        "DOC-02692",
+        "DOC-02687"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q049",
+      "question": "What are the foreclosure charges on a Loan Against Rental Receivable?",
+      "correct": [
+        "DOC-02470",
+        "DOC-02489"
+      ],
+      "got_top3": [
+        "DOC-02464",
+        "DOC-02469",
+        "DOC-02468"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q052",
+      "question": "How are home loans for under-construction property paid out?",
+      "correct": [
+        "DOC-02295"
+      ],
+      "got_top3": [
+        "DOC-02235",
+        "DOC-00270",
+        "DOC-02237"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q055",
+      "question": "How many days after buying do shares reach my demat account?",
+      "correct": [
+        "DOC-00814"
+      ],
+      "got_top3": [
+        "DOC-00789",
+        "DOC-00790",
+        "DOC-00455"
+      ],
+      "rank": 6
+    },
+    {
+      "id": "Q057",
+      "question": "How can I generate a PIN for my new ATM card?",
+      "correct": [
+        "DOC-00541"
+      ],
+      "got_top3": [
+        "DOC-00542",
+        "DOC-02873",
+        "DOC-01066"
+      ],
+      "rank": 6
+    },
+    {
+      "id": "Q058",
+      "question": "Tell me about government gold bonds that pay interest on top of gold price returns",
+      "correct": [
+        "DOC-00210"
+      ],
+      "got_top3": [
+        "DOC-00467",
+        "DOC-00233",
+        "DOC-00438"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q059",
+      "question": "Can I put more than the usual 12% of my pay into my provident fund?",
+      "correct": [
+        "DOC-00667"
+      ],
+      "got_top3": [
+        "DOC-00666",
+        "DOC-01864",
+        "DOC-01799"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q060",
+      "question": "Is there a fee for paying bills at an ATM through BillPay?",
+      "correct": [
+        "DOC-01440"
+      ],
+      "got_top3": [
+        "DOC-01457",
+        "DOC-01445",
+        "DOC-01478"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q062",
+      "question": "What paperwork do I take to the bank to get a student loan?",
+      "correct": [
+        "DOC-00559"
+      ],
+      "got_top3": [
+        "DOC-00599",
+        "DOC-02383",
+        "DOC-00551"
+      ],
+      "rank": null
+    },
+    {
+      "id": "Q070",
+      "question": "What should I do about a void transaction on my Platinum Debit Card?",
+      "correct": [
+        "DOC-01201",
+        "DOC-01204"
+      ],
+      "got_top3": [
+        "DOC-01159",
+        "DOC-01160",
+        "DOC-01092"
+      ],
+      "rank": null
+    }
+  ],
+  "failures_absent_answered": [
+    {
+      "id": "Q056",
+      "question": "What is my current account balance?",
+      "kind": "personal_data",
+      "cos": 0.756,
+      "cov": 0.667
+    }
+  ]
+}

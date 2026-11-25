@@ -1,0 +1,1 @@
+-- Database schemas and tables will be added in Phase 2.\n
