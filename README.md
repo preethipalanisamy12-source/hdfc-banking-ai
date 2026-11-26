@@ -1,151 +1,396 @@
 # HDFC Banking AI Assistant
 
-An AI-powered banking assistant built using Generative AI, Retrieval-Augmented Generation (RAG), and a fine-tuned language model.
+An AI-powered banking portal combining a fine-tuned language model, retrieval-augmented generation (RAG), and authenticated database queries for banking conversations and customer self-service workflows.
 
-## 1. Project Overview
+> **Academic demonstration:** This is an independent academic project, not an official HDFC Bank product. Its knowledge-base records are demonstration-labelled and must not be treated as verified or current HDFC Bank policy.
 
-HDFC Banking AI Assistant is a conversational application designed to help users interact with banking information through natural language.
+## 1. Business Problem and Product Goal
 
-The system combines an AI-powered intent router, a retrieval-based knowledge system, and a language model to provide relevant responses through a simple web interface.
+Banking customers may need help with general banking questions, information contained in banking documents, and their own account or transaction information. These needs involve different data sources and should not all be handled by a single unrestricted language-model response.
 
-## 2. Problem Statement
+This project demonstrates a unified banking-assistant experience that routes requests to an appropriate workflow:
+- General banking questions use the language-model response path.
+- Knowledge-base questions use retrieval-augmented generation.
+- Customer-specific requests use authenticated backend services and database queries.
+- Unsupported or insufficiently supported requests can receive a controlled fallback or abstention response.
 
-Banking information can be spread across multiple documents and services, making it difficult for users to find relevant answers quickly.
+**Product goal:** Demonstrate how an AI-enabled banking portal can combine language-model interaction, document retrieval, and authenticated structured-data access in one application.
 
-This project explores how Generative AI and RAG can make banking information easier to access through a conversational interface.
+**Intended users:** Demonstration customers using the banking portal and administrators using role-restricted dashboard functions.
 
-## 3. Key Features
+## 2. Project Overview and Key Features
 
-- Conversational banking assistant
-- AI-based intent detection and routing
-- Retrieval-Augmented Generation (RAG)
-- Knowledge-based question answering
-- User authentication and session management
-- Chat interface with a web frontend
-- Backend API built with FastAPI
+The HDFC Banking AI Assistant is a full-stack demonstration application with a browser-based frontend and a FastAPI backend.
 
-## 4. System Architecture
+### Banking dashboard
+- Customer and administrator views.
+- Account and transaction summaries.
+- Customer profile information.
+- Administrative views for customers, accounts, and transactions.
 
-The application is organised into four main components:
+### AI banking assistant
+- Natural-language banking queries.
+- Intent classification and task routing.
+- General banking question answering.
+- Responses generated using retrieved or database-provided context where applicable.
 
-- **Frontend:** HTML, CSS, and JavaScript interface
-- **Backend:** FastAPI application handling requests and application logic
-- **AI Layer:** Intent routing, language-model integration, and response generation
-- **RAG Layer:** Document ingestion, embeddings, retrieval, and evaluation
+### Fine-tuned language model
+- A fine-tuned Qwen-based model is called through a separate model inference API.
+- The backend uses the model API for intent prediction and answer generation.
+- The model API is configured using environment variables; credentials must not be stored in source control.
 
-## 5. Technology Stack
+### Retrieval-augmented generation (RAG)
+- Banking knowledge documents are audited, cleaned, curated, and split into chunks.
+- Text chunks are converted into embeddings.
+- Retrieval combines semantic vector search and keyword search.
+- Hybrid rankings are fused using Reciprocal Rank Fusion (RRF).
+- Retrieved passages can include source and verification metadata.
+- Retrieval/evidence checks can lead to a controlled response when adequate evidence is unavailable.
 
-| Component | Technologies |
+**Knowledge-base qualification:** The inspected RAG documentation identifies retained knowledge-base records as `DEMO_LABELLED`, not verified official HDFC Bank policy. Treat them as demonstration knowledge, not authoritative or current bank policy.
+
+### Customer database retrieval
+- Authenticated users can retrieve their own account and transaction information.
+- The backend resolves the customer record from the authenticated user identity.
+- Supported operations include account listing, account balance, transaction summaries, recent transactions, failed transactions, and pending transactions.
+- Administrator endpoints provide role-restricted views of customer, account, and transaction records.
+
+### Authentication and access control
+- Login and registration endpoints.
+- Password hashing and verification.
+- Session-token authentication using an HTTP-only cookie.
+- Role-aware authorization for administrator routes.
+- Logout revokes the stored session.
+
+## 3. AI Workflow and Prompt Strategy
+
+The backend uses intent classification and routing to select a processing path instead of sending every request through the same response workflow.
+
+### Request-processing flow
+1. The user signs in through the frontend.
+2. FastAPI authenticates the user and establishes a server-side session.
+3. The chat endpoint receives the question and authenticated user context.
+4. The intent router calls the fine-tuned model to predict the request intent and relevant task parameters.
+5. The chat service dispatches the request:
+   - `LLM_ONLY`: general response generation.
+   - `RAG`: retrieve relevant knowledge passages and generate a response using available context.
+   - `SQL`: execute a supported customer-specific database operation.
+   - `SQL_RAG`: combine customer database information with retrieved knowledge where required.
+   - `OUT_OF_SCOPE`: return a controlled response for unsupported topics.
+6. The response is returned to the frontend.
+
+### Prompting approach
+The model is used for intent prediction and answer generation. The backend determines the workflow and supplies relevant context to the response-generation path. For RAG requests, retrieved passages are supporting context; for customer-specific requests, authenticated backend database services provide structured information.
+
+This separation keeps routing, retrieval, database access, and language generation as distinct responsibilities. The language model is not intended to independently access arbitrary customer records.
+
+### Validation, guardrails, and error handling
+- Authentication and role checks protect customer-specific and administrator operations.
+- Customer data access is resolved through the authenticated backend identity.
+- RAG retrieval uses evidence/context checks before generating a knowledge-grounded response.
+- Unsupported or insufficiently supported requests can be handled through controlled fallback or abstention paths.
+- API credentials are supplied through environment variables rather than committed to source control.
+
+The available evaluation notes identify areas needing improvement, including personal-data abstention testing. The project therefore relies on authenticated backend/database authorization for personal customer data and does not treat RAG as an authorization mechanism.
+
+## 4. Data Sources and Tool Integration
+
+### Data and storage
+- **Banking knowledge documents:** Prepared through the project's audit, cleaning, deduplication, canonicalization, chunking, and embedding workflow. The retained records are demonstration-labelled.
+- **Customer and banking records:** Stored in the project's Neon PostgreSQL database and accessed through backend services after authentication.
+- **RAG document chunks and vector representations:** Stored in the same Neon PostgreSQL database, with `pgvector` providing vector storage and similarity search. The inspected retrieval evaluation configuration uses `BAAI/bge-small-en-v1.5` embeddings (384 dimensions).
+
+### Main integrations
+
+| Component | Responsibility |
+|---|---|
+| Fine-tuned Qwen model API | Intent prediction and answer generation |
+| FastAPI services | Request handling, routing, authentication, orchestration |
+| Neon PostgreSQL | Central managed PostgreSQL database for customer records and RAG knowledge data |
+| pgvector (Neon PostgreSQL extension) | Embedding storage and vector similarity retrieval within the same database |
+| BM25 retrieval | Keyword-based retrieval |
+| Hybrid retrieval / RRF | Combines keyword and vector retrieval rankings |
+| Render | Hosts the deployed frontend and backend services |
+| Google Colab GPU + ngrok | Separate model-inference environment and tunnel used by the deployed backend |
+
+The frontend sends requests to the backend API. The backend authenticates the user, routes the request, and invokes the relevant model, retrieval, or database service. The resulting response is returned to the frontend. The model API is configured through `MODEL_API_URL` and `MODEL_API_TOKEN`; database configuration is supplied through the environment variables expected by the backend.
+
+## 5. System Architecture
+
+The system consists of a browser frontend, a FastAPI backend, one Neon PostgreSQL database used for both customer records and RAG knowledge storage, and a separately hosted model inference API.
+
+```mermaid
+flowchart TB
+    U[Customer / Administrator] --> FE[Web Frontend<br/>HTML, CSS, JavaScript]
+    FE <-->|HTTPS / JSON| API[FastAPI Backend]
+    API --> AUTH[Authentication & Session Services]
+    API --> ROUTER[Intent Router]
+    API --> PROFILE[Profile & Transaction APIs]
+    API --> ADMIN[Admin APIs]
+    AUTH --> DB[(Neon PostgreSQL<br/>Single shared database)]
+    PROFILE --> DB
+    ADMIN --> DB
+    ROUTER -->|LLM_ONLY / RAG / SQL / SQL_RAG| CHAT[Chat Orchestration Service]
+    CHAT -->|Predict intent| MODEL[Fine-tuned Qwen Model API]
+    CHAT -->|Generate answer| MODEL
+    CHAT -->|Authenticated customer SQL| DB
+    CHAT -->|Knowledge question| RAG[RAG Retrieval Pipeline]
+    RAG --> INGEST[Document Ingestion<br/>Audit • Clean • Chunk • Embed]
+    INGEST -->|Store chunks and embeddings| DB
+    DB -->|Customer tables| CHAT
+    RAG --> SEARCH[Hybrid Retrieval<br/>BM25 + pgvector similarity search]
+    DB -->|RAG chunks, metadata and vectors| SEARCH
+    SEARCH -->|Retrieved passages + source metadata| CHAT
+    CHAT -->|Grounded / fallback / abstention response| API
+    API --> FE
+```
+
+### RAG data preparation and retrieval
+
+```mermaid
+flowchart LR
+    A[Source Workbook / Documents] --> B[Audit]
+    B --> C[Clean & Deduplicate]
+    C --> D[Canonical Documents]
+    D --> E[Chunking]
+    E --> F[Embedding Generation]
+    F --> G[(Neon PostgreSQL<br/>pgvector + RAG chunks)]
+    G --> H[Vector Similarity Retrieval]
+    G --> I[Keyword Retrieval]
+    H --> J[RRF Hybrid Ranking]
+    I --> J
+    J --> K[Evidence / Abstention Decision]
+    K --> L[Grounded Answer Generation]
+```
+
+### Why this architecture was chosen
+The project separates the user interface, backend orchestration, model inference, retrieval, and structured-data access. This gives each component a distinct responsibility. Keeping customer-specific SQL operations in authenticated backend services avoids relying on a language model as the access-control layer.
+
+A separate model-inference endpoint allows the fine-tuned model to run in a GPU-enabled environment without requiring the web backend host to load the model itself. The trade-off is dependence on the separate inference service and its tunnel being available.
+
+## 6. Deployment Architecture
+
+The current demonstration deployment uses separate services:
+
+```mermaid
+flowchart TB
+    USER[Evaluator / User Browser]
+    FE[Render: Frontend<br/>HDFC Banking AI]
+    BE[Render: FastAPI Backend<br/>HDFC Banking AI Backend]
+    DB[(Neon PostgreSQL<br/>Customer data + RAG vectors)]
+    NG[ngrok HTTPS Tunnel]
+    COLAB[Google Colab GPU<br/>Fine-tuned Qwen Inference API]
+    USER -->|HTTPS| FE
+    FE -->|API requests| BE
+    BE --> DB
+    BE -->|MODEL_API_URL + bearer token| NG
+    NG --> COLAB
+```
+
+- **Live frontend:** https://hdfc-banking-ai.onrender.com
+- **Backend service:** https://hdfc-banking-ai-backend.onrender.com
+- **Model inference:** Google Colab GPU service exposed through ngrok.
+- **Configuration:** The backend uses `MODEL_API_URL` and `MODEL_API_TOKEN` for the model API connection.
+
+The model inference service is separate from the Render frontend and backend. Its availability depends on the Colab runtime and ngrok tunnel being active. If the tunnel URL or token changes, update the corresponding backend environment variables securely.
+
+## 7. Technology Stack
+
+| Layer | Technologies |
 |---|---|
 | Frontend | HTML, CSS, JavaScript |
-| Backend | Python, FastAPI |
-| AI | Fine-tuned language model, Qwen |
-| RAG | Sentence Transformers, BM25, vector retrieval |
-| Database | SQLAlchemy, PostgreSQL-compatible configuration |
-| Development | VS Code, Google Colab, GitHub |
+| Backend API | Python, FastAPI |
+| Database access | SQLAlchemy |
+| Database | Neon PostgreSQL |
+| Vector storage and search | pgvector extension in Neon PostgreSQL |
+| AI model | Fine-tuned Qwen-based model |
+| Fine-tuning artifacts | QLoRA/LoRA adapter files are present in the project structure |
+| RAG embeddings | `BAAI/bge-small-en-v1.5` (384 dimensions in the inspected evaluation artifacts) |
+| Retrieval | BM25 keyword retrieval, vector retrieval, Reciprocal Rank Fusion |
+| Deployment | Render, Google Colab GPU, ngrok |
 
-## 6. Project Structure
+## 8. Screenshots
+
+The following screenshots show the deployed application's interface and representative chatbot workflows.
+
+### Application interface
+
+| Screenshot | Description |
+|---|---|
+| ![Home page](Screenshots/home-page.png) | Home page and application entry point |
+| ![Dashboard](Screenshots/dashboard.png) | Banking dashboard interface |
+
+### AI assistant capabilities
+
+| Screenshot | Description |
+|---|---|
+| ![General banking knowledge](Screenshots/01-general-banking-knowledge.png) | General banking question and answer |
+| ![RAG document retrieval](Screenshots/02-rag-document-retrieval.png) | Knowledge-base retrieval demonstration |
+| ![Customer database retrieval](Screenshots/03-customer-database-retrieval.png) | Customer-specific database retrieval |
+| ![Abstention example](Screenshots/04-abstention.png) | Handling a question that cannot be answered reliably from available information |
+
+
+
+## 9. Evaluation and Reliability
+
+The repository's inspected evaluation artifacts report a 29-question test sample for the `BAAI/bge-small-en-v1.5` retrieval configuration.
+
+| Metric | Reported result |
+|---|---:|
+| Hybrid Recall@5 | 0.552 |
+| Hybrid MRR | 0.503 |
+| Answerable-question pass rate | 0.931 |
+| False abstention rate | 0.069 |
+| Absent-answer abstention | 0.917 |
+
+### Evaluation notes and limitations
+- The evaluation sample contains 29 questions; it is small and is not production-level validation.
+- The accompanying evaluation notes state that the questions were model-drafted and were not accompanied by a completed independent human-review decision file.
+- The evaluation notes identify a personal-data abstention weakness in one of two tested personal-data questions. Personal and account-specific data must therefore continue to use authenticated backend/database authorization rather than RAG.
+- The knowledge-base records are labelled as demonstration knowledge and must not be represented as verified current HDFC Bank policy.
+- These metrics describe retrieval/evaluation artifacts, not a guarantee of end-to-end answer accuracy.
+
+The retrieval evaluation provides an initial indication of whether relevant knowledge passages are returned near the top of ranked results and whether the retrieval workflow distinguishes answerable from absent-answer questions in this small test sample. It does not independently establish the correctness of every generated answer or the reliability of the deployed application.
+
+### Known limitations
+- The retrieval evaluation set is small and lacks completed independent human-review validation.
+- The knowledge base is demonstration-labelled rather than verified current bank policy.
+- Personal-data abstention requires further testing; authenticated backend authorization remains essential.
+- The separately hosted model inference service depends on the Colab runtime and ngrok tunnel.
+- End-to-end answer quality and deployment reliability require continued testing across more use cases.
+
+## 10. Project Structure
+
+The following tree summarizes the main application components.
 
 ```text
 hdfc-banking-ai/
 ├── backend/
 │   ├── app/
-│   ├── data/
-│   ├── rag/
-│   ├── tests/
+│   │   ├── api/routes/       # Authentication, chat, profile, transactions, admin
+│   │   ├── core/             # Security and authentication dependencies
+│   │   ├── database/         # Database connection and models
+│   │   ├── schemas/          # Request/response schemas
+│   │   └── services/         # Chat orchestration, routing, SQL, model and RAG services
+│   ├── models/               # Fine-tuning adapter/model artifacts, if included
+│   ├── rag/                  # RAG data, ingestion, retrieval and evaluation
+│   ├── tests/                # Backend tests
 │   └── requirements.txt
-├── frontend/
 ├── database/
-├── shared/
-├── colab/
-├── .env.example
-├── .gitignore
-└── README.md
+│   ├── migrations/
+│   ├── seed/
+│   └── schema.sql
+├── frontend/
+│   ├── index.html
+│   └── style.css
+├── Screenshots/
+├── README.md
+└── architecture.mmd
 ```
 
-## 7. Local Setup
+## 11. Local Setup
 
 ### Prerequisites
+- Python version supported by the project's dependencies.
+- A Neon PostgreSQL database configured for the application, with the required `pgvector` extension enabled.
+- Access to the configured model inference API for AI chat features.
 
-- Python 3.10+
-- Git
-- A configured model API endpoint
-
-### Installation
-
-Clone the repository:
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/preethipalanisamy12-source/hdfc-banking-ai.git
+git clone <YOUR_GITHUB_REPOSITORY_URL>
 cd hdfc-banking-ai
 ```
 
-Create and activate a virtual environment:
+### 2. Create and activate a virtual environment
 
-```bash
-python -m venv .venv
-```
-
-Windows:
+Windows PowerShell:
 
 ```powershell
-.venv\Scripts\Activate.ps1
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-Install dependencies:
+macOS / Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install backend dependencies
 
 ```bash
 pip install -r backend/requirements.txt
 ```
 
-Configure environment variables using the example file:
+### 4. Configure environment variables
 
-```text
-backend/.env.example
-```
+Create a local environment file using the variable names expected by the backend. The model API settings include:
+- `MODEL_API_URL`
+- `MODEL_API_TOKEN`
 
-Create a private `backend/.env` and enter your own configuration values. Never upload API tokens or secrets.
+Configure the database connection using the exact variable name expected by the project's database configuration. Refer to the backend configuration and any `.env.example` file for the complete list.
 
-### Run the Backend
+Never commit `.env` files, API tokens, database passwords, or other secrets.
+
+### 5. Prepare the database
+
+Configure the Neon PostgreSQL connection using the database environment variable expected by the backend. Ensure the `pgvector` extension and the project's database schema are available. Customer tables and RAG document/vector records are stored in this same Neon database. The RAG retrieval configuration must use the same embedding model as the vectors stored in the knowledge base.
+
+### 6. Run the backend
+
+From the `backend` directory:
 
 ```bash
-cd backend
-python -m uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 ```
 
-The API will be available at:
+Open the local application at:
 
-`http://127.0.0.1:8000`
+```text
+http://127.0.0.1:8000
+```
 
-## 8. Model Integration
+The FastAPI application may serve the frontend static files in the local setup, while the deployed frontend is hosted as a separate Render service. Follow the actual deployment configuration when testing the live services.
 
-The language model is integrated through an API endpoint. The model experimentation and integration workflow is documented in the `colab/` directory.
+## 12. API Overview
 
-## 9. Evaluation
+The backend defines the following route groups:
 
-The project includes evaluation scripts and test cases for:
+| Route prefix | Purpose |
+|---|---|
+| `/api/auth` | Login, registration and logout |
+| `/api/chat` | Authenticated chatbot requests |
+| `/api/profile` | Current user's profile |
+| `/api/transactions` | Current user's account and transaction data |
+| `/api/admin` | Role-protected administrative data and dashboard |
 
-- Retrieval performance
-- Embedding model comparison
-- Intent routing
-- Backend services
-- API and application functionality
+Interactive API documentation is available at `/docs` when the backend is running, if enabled in the application configuration.
 
-## 10. Security and Limitations
+## 13. Security and Responsible Use
 
-- This is an educational demonstration, not an official HDFC Bank product.
-- The application does not connect to real customer banking accounts.
-- Demonstration data should not be treated as verified or authoritative HDFC Bank policy.
-- Model responses may be inaccurate and should not be used for actual financial decisions.
-- API credentials and private environment files must never be committed to GitHub.
+- Customer-specific queries are tied to the authenticated user identity in the backend.
+- Administrative endpoints use role-based authorization.
+- Session tokens are stored in HTTP-only cookies and session records are revocable.
+- Secrets and credentials must be supplied through environment variables and excluded from Git.
+- The RAG knowledge base contains demonstration-labelled records; it is not an authoritative source of current HDFC Bank policy.
+- Use only demonstration accounts and non-sensitive sample data in recordings and public demonstrations.
+- This project is for academic demonstration and testing. It must not be used to make real financial decisions or process real customer banking activity.
 
-## 11. Future Improvements
+## 14. Future Improvements
 
-- Improve retrieval accuracy and response quality
-- Expand automated testing and evaluation
-- Improve deployment and scalability
-- Strengthen response validation and error handling
+- Improve RAG retrieval quality and expand the independently reviewed evaluation set.
+- Strengthen personal-data and unsupported-query abstention tests.
+- Add more robust model-serving availability and monitoring.
+- Expand automated end-to-end testing across authentication, routing, retrieval and answer generation.
+- Add source-level traceability and freshness checks for the knowledge base.
+- Record latency and operational cost measurements across representative workflows.
 
-## 12. Repository
+## 15. Demonstration Video
 
-GitHub: https://github.com/preethipalanisamy12-source/hdfc-banking-ai
+**Demonstration video:** To be added.
+
+## Acknowledgements
+
+Developed as an academic team project exploring the integration of large language models, fine-tuning, retrieval-augmented generation, backend APIs, and relational database retrieval in a banking-assistant demonstration.
