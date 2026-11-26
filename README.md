@@ -476,7 +476,7 @@ Interactive API documentation is available at `/docs` when the backend is runnin
 
 ## 15. Demonstration Video
 
-**Demonstration video:** To be added.
+**Demonstration video:** (https://drive.google.com/file/d/1nkIYssxBNosMSueRugJvFI4VZIQWkGgO/view?usp=sharing)
 
 ## Acknowledgements
 
