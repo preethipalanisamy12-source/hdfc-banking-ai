@@ -238,9 +238,87 @@ The following screenshots show the deployed application's interface and represen
 | ![Customer database retrieval](Screenshots/03-customer-database-retrieval.png) | Customer-specific database retrieval |
 | ![Abstention example](Screenshots/04-abstention.png) | Handling a question that cannot be answered reliably from available information |
 
+### 9.1 Fine-Tuning and Model Evaluation
 
+The HDFC Banking AI Assistant uses a fine-tuned `Qwen/Qwen2.5-1.5B-Instruct` model for intent classification and structured response generation. The model was fine-tuned using QLoRA with 4-bit quantization and LoRA adapters.
 
-## 9. Evaluation and Reliability
+#### Dataset
+
+The fine-tuning dataset was divided into three splits:
+
+| Dataset Split | Number of Records |
+|---|---:|
+| Training | 5,470 |
+| Validation | 776 |
+| Testing | 880 |
+| **Total** | **7,126** |
+
+The dataset contains examples for the following processing stages:
+
+- `ROUTER` – Intent classification and request routing.
+- `ROUTER_FOLLOWUP` – Handling follow-up interactions.
+- `ANSWER` – Generating structured responses.
+
+#### Fine-Tuning Configuration
+
+| Parameter | Configuration |
+|---|---|
+| Base Model | `Qwen/Qwen2.5-1.5B-Instruct` |
+| Fine-Tuning Method | QLoRA |
+| Quantization | 4-bit NF4 with double quantization |
+| LoRA Rank (`r`) | 16 |
+| LoRA Alpha | 32 |
+| LoRA Dropout | 0.05 |
+| Target Modules | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj` |
+| Training Epochs | 2 |
+| Learning Rate | 0.0001 |
+| Optimizer | Paged AdamW 8-bit |
+| Learning Rate Scheduler | Cosine |
+| Effective Batch Size | 16 |
+| Gradient Checkpointing | Enabled |
+| Mixed Precision | FP16 |
+
+#### Training Performance
+
+The model completed two training epochs, with validation performed at 100-step intervals.
+
+| Step | Training Loss | Validation Loss |
+|---:|---:|---:|
+| 100 | 0.049600 | 0.092337 |
+| 200 | 0.024800 | 0.058254 |
+| 300 | 0.007700 | 0.040761 |
+| 400 | 0.009000 | 0.040437 |
+| 500 | 0.003900 | 0.037352 |
+| 600 | 0.003900 | 0.037188 |
+
+**Final training loss:** 0.04736
+
+#### Intent Classification Evaluation
+
+Intent classification was evaluated using a balanced sample of 100 records selected from the 625 `ROUTER` examples in the test dataset. The sample contained 20 examples for each intent category.
+
+| Intent | Precision | Recall | F1-Score | Support |
+|---|---:|---:|---:|---:|
+| `LLM_ONLY` | 0.95 | 1.00 | 0.98 | 20 |
+| `OUT_OF_SCOPE` | 1.00 | 0.95 | 0.97 | 20 |
+| `RAG` | 1.00 | 1.00 | 1.00 | 20 |
+| `SQL` | 0.83 | 1.00 | 0.91 | 20 |
+| `SQL_RAG` | 1.00 | 0.80 | 0.89 | 20 |
+| **Macro Average** | **0.96** | **0.95** | **0.95** | **100** |
+| **Weighted Average** | **0.96** | **0.95** | **0.95** | **100** |
+
+The evaluation produced the following results:
+
+| Evaluation Metric | Result |
+|---|---:|
+| Intent Classification Accuracy | **95%** |
+| Exact JSON Accuracy | **93%** |
+
+Exact JSON accuracy measures whether the generated structured output matched the expected JSON response, including its fields and values.
+
+These results represent the balanced router sample evaluated in the fine-tuning notebook. They are separate from the RAG retrieval evaluation results presented below.
+
+## 9.2 RAG Evaluation and Reliability
 
 The repository's inspected evaluation artifacts report a 29-question test sample for the `BAAI/bge-small-en-v1.5` retrieval configuration.
 
