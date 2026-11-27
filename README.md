@@ -2,7 +2,13 @@
 
 An AI-powered banking portal combining a fine-tuned language model, retrieval-augmented generation (RAG), and authenticated database queries for banking conversations and customer self-service workflows.
 
-> **Academic demonstration:** This is an independent academic project, not an official HDFC Bank product. Its knowledge-base records are demonstration-labelled and must not be treated as verified or current HDFC Bank policy.
+**Demonstration Video:** https://drive.google.com/file/d/1nkIYssxBNosMSueRugJvFI4VZIQWkGgO/view?usp=sharing
+
+**Live Website (Backend):** https://hdfc-banking-ai-backend.onrender.com
+
+(Demo Login Credentials: rahul@example.com, Pass: rahuldemo@123)
+
+> **Model API Availability:** The AI inference service runs through a Google Colab GPU session and ngrok tunnel. Its availability depends on the active Colab session. Due to free-tier GPU usage limitations, the session may not be continuously active, and AI-powered features may be temporarily unavailable when it is stopped.
 
 ## 1. Business Problem and Product Goal
 
@@ -117,53 +123,200 @@ The frontend sends requests to the backend API. The backend authenticates the us
 
 ## 5. System Architecture
 
-The system consists of a browser frontend, a FastAPI backend, one Neon PostgreSQL database used for both customer records and RAG knowledge storage, and a separately hosted model inference API.
+The architecture has two connected flows:
 
-```mermaid
-flowchart TB
-    U[Customer / Administrator] --> FE[Web Frontend<br/>HTML, CSS, JavaScript]
-    FE <-->|HTTPS / JSON| API[FastAPI Backend]
-    API --> AUTH[Authentication & Session Services]
-    API --> ROUTER[Intent Router]
-    API --> PROFILE[Profile & Transaction APIs]
-    API --> ADMIN[Admin APIs]
-    AUTH --> DB[(Neon PostgreSQL<br/>Single shared database)]
-    PROFILE --> DB
-    ADMIN --> DB
-    ROUTER -->|LLM_ONLY / RAG / SQL / SQL_RAG| CHAT[Chat Orchestration Service]
-    CHAT -->|Predict intent| MODEL[Fine-tuned Qwen Model API]
-    CHAT -->|Generate answer| MODEL
-    CHAT -->|Authenticated customer SQL| DB
-    CHAT -->|Knowledge question| RAG[RAG Retrieval Pipeline]
-    RAG --> INGEST[Document Ingestion<br/>Audit • Clean • Chunk • Embed]
-    INGEST -->|Store chunks and embeddings| DB
-    DB -->|Customer tables| CHAT
-    RAG --> SEARCH[Hybrid Retrieval<br/>BM25 + pgvector similarity search]
-    DB -->|RAG chunks, metadata and vectors| SEARCH
-    SEARCH -->|Retrieved passages + source metadata| CHAT
-    CHAT -->|Grounded / fallback / abstention response| API
-    API --> FE
-```
+1. **Online request flow:** a signed-in user sends a request through the frontend. The FastAPI backend authenticates the request, asks the fine-tuned Qwen model to classify its intent, and sends it to the appropriate workflow.
+2. **Knowledge preparation flow:** banking knowledge documents are prepared separately, converted into chunks and embeddings, and stored in the same Neon PostgreSQL database used by the application. At runtime, the RAG workflow searches this stored knowledge.
 
-### RAG data preparation and retrieval
+### System at a glance
+
+A one-look summary of the five main parts of the system. The detailed views below zoom into each part.
 
 ```mermaid
 flowchart LR
-    A[Source Workbook / Documents] --> B[Audit]
-    B --> C[Clean & Deduplicate]
-    C --> D[Canonical Documents]
-    D --> E[Chunking]
-    E --> F[Embedding Generation]
-    F --> G[(Neon PostgreSQL<br/>pgvector + RAG chunks)]
-    G --> H[Vector Similarity Retrieval]
-    G --> I[Keyword Retrieval]
-    H --> J[RRF Hybrid Ranking]
-    I --> J
-    J --> K[Evidence / Abstention Decision]
-    K --> L[Grounded Answer Generation]
+    USER(["👤 Customer /<br/>Administrator"])
+    FE["🖥️ Web Frontend<br/>HTML · CSS · JavaScript"]
+    API["⚙️ FastAPI Backend<br/>authentication · routing · orchestration"]
+    MODEL{{"🧠 Fine-tuned Qwen Model API<br/>intent prediction + answer generation"}}
+    DB[("🗄️ Neon PostgreSQL<br/>customer records + RAG knowledge (pgvector)")]
+
+    USER -->|"sign in and ask"| FE
+    FE <-->|"HTTPS / JSON"| API
+    API <-->|"classify intent · generate answers"| MODEL
+    API <-->|"authenticated queries · knowledge search"| DB
+
+    classDef client fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D2A4A
+    classDef svc fill:#ECEFF1,stroke:#455A64,stroke-width:2px,color:#1C2A33
+    classDef ai fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#2D0A3D
+    classDef data fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#10331A
+    class USER,FE client
+    class API svc
+    class MODEL ai
+    class DB data
 ```
 
+### End-to-end application workflow
+
+```mermaid
+flowchart LR
+    USER(["👤 Customer /<br/>Administrator"])
+
+    subgraph CLIENT["🖥️ CLIENT"]
+        FE["Web Frontend<br/>HTML · CSS · JavaScript"]
+    end
+
+    subgraph BACKEND["⚙️ FASTAPI BACKEND · trusted, authenticated zone"]
+        AUTH["🔒 Authentication and<br/>Session Services"]
+        REST["Profile · Transaction ·<br/>Admin APIs"]
+        CHAT["Chat API"]
+        ROUTER{"Intent Router and<br/>Chat Orchestration Service"}
+        GENERAL["General Answer<br/>Workflow"]
+        RAGWF["Knowledge Retrieval<br/>Workflow (RAG)"]
+        HYBRID["Hybrid Retriever<br/>BM25 + pgvector + RRF"]
+        EVID{"Enough<br/>evidence?"}
+        SQLSVC["🔒 Authenticated<br/>SQL Service"]
+        COMBINED["Combined<br/>SQL + RAG Workflow"]
+        FALLBACK["Controlled<br/>out-of-scope response"]
+        ABSTAIN["Controlled<br/>abstention response"]
+        RESULT["Final Chat Response"]
+    end
+
+    subgraph AI["🧠 FINE-TUNED QWEN MODEL API · Colab GPU via ngrok"]
+        INTENT["Intent prediction"]
+        GEN["Answer generation"]
+        NOTE["No direct access to<br/>the customer database"]
+    end
+
+    subgraph DATA["🗄️ NEON POSTGRESQL · single shared database"]
+        SESS[("Users and<br/>sessions")]
+        CUST[("Customer accounts<br/>and transactions")]
+        KB[("Knowledge chunks +<br/>pgvector embeddings")]
+    end
+
+    USER -->|"① Sign in / ask"| FE
+    FE -->|"② HTTPS / JSON +<br/>session cookie"| AUTH
+    AUTH <-->|"validate session"| SESS
+    AUTH -->|"③ Authenticated<br/>question"| CHAT
+    AUTH -->|"Dashboard requests"| REST
+    REST <-->|"authorized / role-restricted data"| CUST
+
+    CHAT --> ROUTER
+    ROUTER <-->|"④ Predict intent"| INTENT
+    ROUTER -->|"⑤ LLM_ONLY"| GENERAL
+    ROUTER -->|"⑤ RAG"| RAGWF
+    ROUTER -->|"⑤ SQL"| SQLSVC
+    ROUTER -->|"⑤ SQL_RAG"| COMBINED
+    ROUTER -->|"⑤ OUT_OF_SCOPE"| FALLBACK
+
+    GENERAL -->|"prompt"| GEN
+    RAGWF <--> HYBRID
+    HYBRID <-->|"search chunks<br/>and vectors"| KB
+    RAGWF --> EVID
+    EVID -->|"Yes: context-grounded prompt"| GEN
+    EVID -->|"No"| ABSTAIN
+    SQLSVC <-->|"customer-specific<br/>queries"| CUST
+    COMBINED <-->|"knowledge retrieval"| HYBRID
+    COMBINED <-->|"authorized customer data"| CUST
+    COMBINED -->|"combined context"| GEN
+
+    GEN -->|"generated answer"| RESULT
+    SQLSVC --> RESULT
+    FALLBACK --> RESULT
+    ABSTAIN --> RESULT
+    RESULT -.->|"⑥ Response"| FE
+
+    classDef client fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D2A4A
+    classDef svc fill:#ECEFF1,stroke:#455A64,stroke-width:2px,color:#1C2A33
+    classDef decision fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#3E2F00
+    classDef ai fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#2D0A3D
+    classDef note fill:#FFFFFF,stroke:#6A1B9A,stroke-width:1.5px,stroke-dasharray:5 3,color:#2D0A3D
+    classDef data fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#10331A
+    classDef guard fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#4A2000
+
+    class USER,FE client
+    class AUTH,REST,CHAT,GENERAL,RAGWF,HYBRID,SQLSVC,COMBINED,RESULT svc
+    class ROUTER,EVID decision
+    class INTENT,GEN ai
+    class NOTE note
+    class SESS,CUST,KB data
+    class FALLBACK,ABSTAIN guard
+
+    style CLIENT fill:#F5FAFF,stroke:#90CAF9,stroke-width:2px,color:#0D2A4A
+    style BACKEND fill:#F6F8F9,stroke:#B0BEC5,stroke-width:2px,color:#1C2A33
+    style AI fill:#FAF3FC,stroke:#CE93D8,stroke-width:2px,color:#2D0A3D
+    style DATA fill:#F3FAF4,stroke:#A5D6A7,stroke-width:2px,color:#10331A
+```
+
+**Example questions and the path each one takes:**
+
+| Example question | Predicted intent | Path |
+|---|---|---|
+| "What is compound interest?" | `LLM_ONLY` | Intent Router → General Answer Workflow → Qwen answer generation → response |
+| "What does the knowledge base say about this policy?" | `RAG` | Intent Router → Knowledge Retrieval → evidence check → Qwen answer generation → response (or abstention if evidence is insufficient) |
+| "What is my account balance?" | `SQL` | Intent Router → Authenticated SQL Service → customer tables → response |
+| "Show my failed transactions and explain the related policy." | `SQL_RAG` | Intent Router → Combined SQL + RAG Workflow → customer tables and knowledge search → Qwen answer generation → response |
+| "What is the weather today?" | `OUT_OF_SCOPE` | Intent Router → controlled out-of-scope response |
+
+### Knowledge-base preparation and runtime retrieval
+
+This is a separate data-preparation flow. It populates the knowledge data that the online RAG workflow searches; it is not a step that runs from the user's question each time.
+
+```mermaid
+flowchart LR
+    subgraph PREP["📚 OFFLINE · knowledge preparation (run in advance)"]
+        direction TB
+        SOURCE["Source Workbooks /<br/>Documents"] --> AUDIT["Audit"]
+        AUDIT --> CLEAN["Clean and<br/>Deduplicate"]
+        CLEAN --> CANONICAL["Canonical<br/>Documents"]
+        CANONICAL --> CHUNK["Chunking<br/>(split into passages)"]
+        CHUNK --> EMBED["Embedding Generation<br/>(text to vectors)"]
+    end
+
+    KB[("🗄️ Neon PostgreSQL<br/>chunks · metadata · pgvector embeddings")]
+
+    subgraph RETRIEVAL["🔎 ONLINE · runs for every knowledge question"]
+        direction TB
+        QUESTION["User's Knowledge<br/>Question"] --> QUERY["Build Retrieval<br/>Query"]
+        QUERY --> BM25["BM25 Keyword Search<br/>(exact-word matching)"]
+        QUERY --> VECTOR["Vector Similarity Search<br/>(meaning-based matching)"]
+        BM25 --> RRF["Reciprocal Rank Fusion<br/>(merges both rankings)"]
+        VECTOR --> RRF
+        RRF --> EVIDENCE{"Evidence / Context<br/>Checks"}
+        EVIDENCE -->|"Adequate"| PASSAGES["Relevant Passages and<br/>Source Metadata"]
+        EVIDENCE -->|"Not adequate"| ABSTAIN["Controlled<br/>abstention response"]
+    end
+
+    PREP -->|"store chunks, metadata<br/>and embeddings"| KB
+    KB -->|"text, metadata<br/>and stored vectors"| RETRIEVAL
+
+    classDef prep fill:#ECEFF1,stroke:#455A64,stroke-width:2px,color:#1C2A33
+    classDef data fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#10331A
+    classDef online fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#2D0A3D
+    classDef decision fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#3E2F00
+    classDef guard fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#4A2000
+    class SOURCE,AUDIT,CLEAN,CANONICAL,CHUNK,EMBED prep
+    class KB data
+    class QUESTION,QUERY,BM25,VECTOR,RRF,PASSAGES online
+    class EVIDENCE decision
+    class ABSTAIN guard
+    style PREP fill:#F6F8F9,stroke:#B0BEC5,stroke-width:2px,color:#1C2A33
+    style RETRIEVAL fill:#FAF3FC,stroke:#CE93D8,stroke-width:2px,color:#2D0A3D
+```
+
+### How each request is processed
+
+| Predicted intent | Processing path |
+|---|---|
+| `LLM_ONLY` | The backend sends the general question to the Qwen model for answer generation. |
+| `RAG` | The backend retrieves relevant knowledge passages using BM25 and pgvector hybrid retrieval, then uses the retrieved context for answer generation. |
+| `SQL` | The backend runs the supported customer-specific database operation using the authenticated user's identity. |
+| `SQL_RAG` | The workflow combines the required authenticated database information and retrieved knowledge context. |
+| `OUT_OF_SCOPE` | The backend returns a controlled response for an unsupported request. |
+
+The Qwen model API is used for intent prediction and answer generation. It does not directly query the customer database. Customer-specific SQL operations remain in authenticated backend services, while the RAG workflow searches the knowledge documents and embeddings stored in Neon PostgreSQL.
+
 ### Why this architecture was chosen
+
 The project separates the user interface, backend orchestration, model inference, retrieval, and structured-data access. This gives each component a distinct responsibility. Keeping customer-specific SQL operations in authenticated backend services avoids relying on a language model as the access-control layer.
 
 A separate model-inference endpoint allows the fine-tuned model to run in a GPU-enabled environment without requiring the web backend host to load the model itself. The trade-off is dependence on the separate inference service and its tunnel being available.
@@ -173,18 +326,40 @@ A separate model-inference endpoint allows the fine-tuned model to run in a GPU-
 The current demonstration deployment uses separate services:
 
 ```mermaid
-flowchart TB
-    USER[Evaluator / User Browser]
-    FE[Render: Frontend<br/>HDFC Banking AI]
-    BE[Render: FastAPI Backend<br/>HDFC Banking AI Backend]
-    DB[(Neon PostgreSQL<br/>Customer data + RAG vectors)]
-    NG[ngrok HTTPS Tunnel]
-    COLAB[Google Colab GPU<br/>Fine-tuned Qwen Inference API]
-    USER -->|HTTPS| FE
-    FE -->|API requests| BE
-    BE --> DB
-    BE -->|MODEL_API_URL + bearer token| NG
+flowchart LR
+    USER(["👤 Evaluator / User<br/>Browser"])
+
+    subgraph RENDER["☁️ RENDER · web hosting"]
+        FE["Frontend<br/>HDFC Banking AI"]
+        BE["FastAPI Backend<br/>HDFC Banking AI Backend"]
+    end
+
+    subgraph NEON["🗄️ NEON · managed database"]
+        DB[("PostgreSQL<br/>customer data + RAG vectors")]
+    end
+
+    subgraph COLAB_ZONE["🧠 MODEL INFERENCE · on-demand, depends on an active Colab session"]
+        NG["ngrok HTTPS Tunnel"]
+        COLAB["Google Colab GPU<br/>Fine-tuned Qwen Inference API"]
+    end
+
+    USER -->|"HTTPS"| FE
+    FE -->|"API requests"| BE
+    BE -->|"database connection"| DB
+    BE -->|"MODEL_API_URL +<br/>bearer token"| NG
     NG --> COLAB
+
+    classDef client fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D2A4A
+    classDef svc fill:#ECEFF1,stroke:#455A64,stroke-width:2px,color:#1C2A33
+    classDef data fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#10331A
+    classDef ondemand fill:#FFF3E0,stroke:#E65100,stroke-width:2px,stroke-dasharray:6 3,color:#4A2000
+    class USER client
+    class FE,BE svc
+    class DB data
+    class NG,COLAB ondemand
+    style RENDER fill:#F6F8F9,stroke:#B0BEC5,stroke-width:2px,color:#1C2A33
+    style NEON fill:#F3FAF4,stroke:#A5D6A7,stroke-width:2px,color:#10331A
+    style COLAB_ZONE fill:#FFF8F0,stroke:#FFB74D,stroke-width:2px,stroke-dasharray:6 3,color:#4A2000
 ```
 
 - **Live frontend:** https://hdfc-banking-ai.onrender.com
@@ -473,10 +648,6 @@ Interactive API documentation is available at `/docs` when the backend is runnin
 - Expand automated end-to-end testing across authentication, routing, retrieval and answer generation.
 - Add source-level traceability and freshness checks for the knowledge base.
 - Record latency and operational cost measurements across representative workflows.
-
-## 15. Demonstration Video
-
-**Demonstration video:** (https://drive.google.com/file/d/1nkIYssxBNosMSueRugJvFI4VZIQWkGgO/view?usp=sharing)
 
 ## Acknowledgements
 
